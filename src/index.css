@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base overrides ──────────────────────────────────────── */
+@layer base {
+  ::-webkit-scrollbar        { width: 6px; }
+  ::-webkit-scrollbar-track  { background: theme('colors.bg'); }
+  ::-webkit-scrollbar-thumb  { background: theme('colors.border-cell'); border-radius: 3px; }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.accent');
+    outline-offset: 2px;
+  }
+}
+
+/* ── Reusable button component ───────────────────────────── */
+@layer components {
+  /* Base control button */
+  .ctrl-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    border: 1px solid theme('colors.border-cell');
+    background-color: theme('colors.bg-surface');
+    color: theme('colors.text-primary');
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 120ms;
+    transition-timing-function: linear;
+  }
+
+  .ctrl-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+  }
+
+  .ctrl-btn:hover:not(:disabled) {
+    background-color: theme('colors.bg-hover');
+    border-color: theme('colors.accent-dim');
+    box-shadow: 0 0 8px theme('colors.accent / 35%');
+  }
+
+  /* Accent variant — gold border + text */
+  .ctrl-btn-accent {
+    border-color: theme('colors.accent-dim');
+    color: theme('colors.accent');
+  }
+
+  .ctrl-btn-accent:hover:not(:disabled) {
+    background-color: theme('colors.accent-dim');
+    color: theme('colors.text-primary');
+  }
+}
