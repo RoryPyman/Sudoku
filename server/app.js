@@ -9,6 +9,7 @@ import authRouter        from './routes/auth.routes.js';
 import gamesRouter       from './routes/games.routes.js';
 import statsRouter       from './routes/stats.routes.js';
 import friendsRouter     from './routes/friends.routes.js';
+import profileRouter     from './routes/profile.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,7 @@ app.use('/api/auth',    authRouter);
 app.use('/api/games',   gamesRouter);
 app.use('/api/stats',   statsRouter);
 app.use('/api/friends', friendsRouter);
+app.use('/api/users',   profileRouter);
 
 if (process.env.NODE_ENV === 'production') {
   // Serve the built React app
