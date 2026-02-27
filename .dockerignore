@@ -1,0 +1,9 @@
+fly.toml
+.git
+.gitignore
+node_modules
+server/node_modules
+dist
+*.md
+.env
+server/.env
