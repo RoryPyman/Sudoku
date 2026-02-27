@@ -24,4 +24,7 @@ export const friendsApi = {
 
   cancelRequest: (userId) =>
     api.delete(`/friends/cancel/${userId}`).then(r => r.data),
+
+  getProfile: (username) =>
+    api.get(`/users/${username}/profile`).then(r => r.data),
 };
