@@ -4,11 +4,12 @@ import { useTimer }   from '../hooks/useTimer.js';
 import { useSudoku }  from '../hooks/useSudoku.js';
 import { useAuth }    from '../context/AuthContext.jsx';
 import { gamesApi }   from '../api/games.js';
-import Board       from '../components/Board.jsx';
-import Controls    from '../components/Controls.jsx';
-import HintPanel   from '../components/HintPanel.jsx';
-import NumberPad   from '../components/NumberPad.jsx';
-import WinModal    from '../components/WinModal.jsx';
+import Board           from '../components/Board.jsx';
+import Controls        from '../components/Controls.jsx';
+import HintPanel       from '../components/HintPanel.jsx';
+import HintExplanation from '../components/HintExplanation.jsx';
+import NumberPad       from '../components/NumberPad.jsx';
+import WinModal        from '../components/WinModal.jsx';
 
 export default function GamePage() {
   const timer  = useTimer();
@@ -17,10 +18,9 @@ export default function GamePage() {
   const navigate  = useNavigate();
   const { newGame, difficulty } = sudoku;
 
-  // ── Save completed game — single write on win ─────────────────────────────
+  // ── Save completed game ───────────────────────────────────────────────────
   useEffect(() => {
     if (!sudoku.won || !user || timer.seconds === 0) return;
-
     gamesApi
       .create({
         difficulty:  sudoku.difficulty,
@@ -36,7 +36,6 @@ export default function GamePage() {
   return (
     <div className="flex flex-col min-h-[calc(100dvh-2.75rem)] px-4 pb-8">
 
-      {/* Page heading */}
       <header className="text-center pt-6 pb-3">
         <h1 className="font-title text-[clamp(2rem,5vw,3.25rem)] font-bold text-accent tracking-[.04em] [text-shadow:0_0_40px_rgba(201,169,110,.35)]">
           Sudoku
@@ -57,7 +56,7 @@ export default function GamePage() {
         />
 
         <div className="flex flex-row items-start gap-6 w-full justify-center max-[700px]:flex-col max-[700px]:items-center">
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-3">
             <Board
               grid={sudoku.grid}
               given={sudoku.given}
@@ -65,11 +64,16 @@ export default function GamePage() {
               conflicts={sudoku.conflicts}
               highlights={sudoku.highlights}
               sameValueCells={sudoku.sameValueCells}
-              spotlightCell={sudoku.spotlightCell}
-              eliminationInfo={sudoku.eliminationInfo}
+              hintResult={sudoku.hintResult}
               notes={sudoku.notes}
               onSelect={sudoku.setSelected}
             />
+
+            <HintExplanation
+              hintResult={sudoku.hintResult}
+              onDismiss={sudoku.clearHint}
+            />
+
             <NumberPad
               onInput={sudoku.inputNumber}
               selected={sudoku.selected}
@@ -84,8 +88,6 @@ export default function GamePage() {
               onHintType={sudoku.setHintType}
               onUseHint={sudoku.useHint}
               hintsUsed={sudoku.hintsUsed}
-              eliminationInfo={sudoku.eliminationInfo}
-              strategyInfo={sudoku.strategyInfo}
               won={sudoku.won}
             />
           </aside>
