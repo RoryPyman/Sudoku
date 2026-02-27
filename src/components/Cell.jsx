@@ -10,9 +10,15 @@ const Cell = memo(function Cell({
   isHighlight,
   isSameValue,
   isConflict,
-  isSpotlight,
-  hasElim,
+  // Hint highlights
+  isTarget,       // primary hint cell — blue ring (+ spotlight animation for easy tier)
+  isCause,        // constraint cell — amber tint
+  isAffected,     // candidate-elimination cell — red tint
+  isEasyHint,     // true when hint tier is 'easy' (for spotlight animation)
+  // Notes
   cellNotes,
+  hintAllCandidates,    // number[] | null — overrides cellNotes when hint shows candidates
+  hintEliminatedNotes,  // number[] — which notes to render red + line-through
   onSelect,
 }) {
   const [r, c] = rc(index);
@@ -22,18 +28,22 @@ const Cell = memo(function Cell({
   const borderB = r === 8 || r % 3 === 2  ? 'border-b-[3px]' : 'border-b';
   const borderR = c === 8 || c % 3 === 2  ? 'border-r-[3px]' : 'border-r';
 
-  const bgClass = isConflict  ? 'bg-cell-conflict-bg/20'
-    : isSelected              ? 'bg-cell-selected'
-    : isSameValue             ? 'bg-cell-same'
-    : isHighlight             ? 'bg-cell-highlight'
-    :                           'bg-bg-surface';
+  const bgClass = isConflict ? 'bg-cell-conflict-bg/20'
+    : isSelected             ? 'bg-cell-selected'
+    : isAffected             ? 'bg-cell-conflict-bg/15'
+    : isCause                ? 'bg-amber-900/20'
+    : isSameValue            ? 'bg-cell-same'
+    : isHighlight            ? 'bg-cell-highlight'
+    :                          'bg-bg-surface';
 
-  const textClass = isConflict    ? 'text-cell-conflict'
-    : isGiven                     ? 'font-medium text-text-primary'
-    : value !== 0                 ? 'text-cell-user'
-    :                               'text-text-primary';
+  const textClass = isConflict ? 'text-cell-conflict'
+    : isGiven                 ? 'font-medium text-text-primary'
+    : value !== 0             ? 'text-cell-user'
+    :                           'text-text-primary';
 
-  const hasNotes = value === 0 && cellNotes && cellNotes.length > 0;
+  // Use hint candidates for display if provided (affects cells, show computed candidates)
+  const displayNotes = hintAllCandidates ?? cellNotes;
+  const hasNotes = value === 0 && displayNotes && displayNotes.length > 0;
 
   return (
     <div
@@ -47,8 +57,8 @@ const Cell = memo(function Cell({
         isGiven ? 'cursor-default' : 'cursor-pointer',
         textClass,
         isSelected && 'ring-2 ring-inset ring-accent z-[1]',
-        isSpotlight && 'animate-spotlight z-[2]',
-        hasElim && 'ring-2 ring-inset ring-cell-user',
+        isTarget && !isSelected && 'ring-2 ring-inset ring-cell-user z-[2]',
+        isTarget && isEasyHint && 'animate-spotlight z-[2]',
       )}
       role="button"
       tabIndex={-1}
@@ -57,14 +67,20 @@ const Cell = memo(function Cell({
     >
       {value !== 0 ? value : hasNotes ? (
         <div className="grid grid-cols-3 grid-rows-3 w-full h-full p-[1px]">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
-            <span
-              key={n}
-              className="flex items-center justify-center text-[clamp(.45rem,1.1vw,.65rem)] leading-none text-slate-400"
-            >
-              {cellNotes.includes(n) ? n : ''}
-            </span>
-          ))}
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => {
+            const inElim = hintEliminatedNotes?.includes(n);
+            return (
+              <span
+                key={n}
+                className={cn(
+                  'flex items-center justify-center text-[clamp(.45rem,1.1vw,.65rem)] leading-none',
+                  inElim ? 'text-cell-conflict line-through' : 'text-slate-400',
+                )}
+              >
+                {displayNotes.includes(n) ? n : ''}
+              </span>
+            );
+          })}
         </div>
       ) : ''}
     </div>
