@@ -19,6 +19,7 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
   const [grid, setGrid] = useState(() => new Array(81).fill(0));
   const [solution, setSolution] = useState(() => new Array(81).fill(0));
   const [given, setGiven] = useState(() => new Array(81).fill(false));
+  const [puzzleStr, setPuzzleStr] = useState('');
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
   const [won, setWon] = useState(false);
@@ -35,6 +36,7 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     setGrid([...puzzle]);
     setSolution(sol);
     setGiven(puzzle.map(v => v !== 0));
+    setPuzzleStr(puzzle.join(''));
     setSelected(null);
     setHistory([]);
     setWon(false);
@@ -172,6 +174,8 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     return set;
   }, [selected]);
 
+  const solutionStr = useMemo(() => solution.join(''), [solution]);
+
   /** Cells sharing the same digit as selected */
   const sameValueCells = useMemo(() => {
     if (selected === null || grid[selected] === 0) return new Set();
@@ -206,5 +210,8 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     undo,
     canUndo: history.length > 0,
     useHint,
+    // Strings for API persistence
+    puzzleStr,
+    solutionStr,
   };
 }

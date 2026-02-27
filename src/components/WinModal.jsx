@@ -8,6 +8,7 @@ const WinModal = memo(function WinModal({
   difficulty,
   hintsUsed,
   onNewGame,
+  onViewStats = null,
 }) {
   return (
     <div
@@ -47,13 +48,23 @@ const WinModal = memo(function WinModal({
           ))}
         </div>
 
-        <button
-          className="ctrl-btn ctrl-btn-accent mx-auto text-[.9rem] px-6 py-[.6rem]"
-          onClick={onNewGame}
-          autoFocus
-        >
-          Play Again
-        </button>
+        <div className="flex flex-col items-center gap-2">
+          <button
+            className="ctrl-btn ctrl-btn-accent mx-auto text-[.9rem] px-6 py-[.6rem]"
+            onClick={onNewGame}
+            autoFocus
+          >
+            Play Again
+          </button>
+          {onViewStats && (
+            <button
+              className="ctrl-btn mx-auto text-[.82rem] px-5 py-[.45rem]"
+              onClick={onViewStats}
+            >
+              View Stats
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
