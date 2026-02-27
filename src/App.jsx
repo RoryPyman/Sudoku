@@ -7,6 +7,7 @@ import LoginPage    from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import HistoryPage  from './pages/HistoryPage.jsx';
 import StatsPage    from './pages/StatsPage.jsx';
+import FriendsPage  from './pages/FriendsPage.jsx';
 
 export default function App() {
   const { loading } = useAuth();
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/history"  element={<PrivateRoute><HistoryPage /></PrivateRoute>} />
         <Route path="/stats"    element={<PrivateRoute><StatsPage /></PrivateRoute>} />
+        <Route path="/friends"  element={<PrivateRoute><FriendsPage /></PrivateRoute>} />
         <Route path="*"         element={<Navigate to="/" replace />} />
       </Routes>
     </div>

@@ -1,10 +1,26 @@
+import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { friendsApi } from '../api/friends.js';
 import { cn } from '../lib/cn.js';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [requestCount, setRequestCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) { setRequestCount(0); return; }
+    friendsApi.requests()
+      .then(({ received }) => setRequestCount(received.length))
+      .catch(() => {});
+    const interval = setInterval(() => {
+      friendsApi.requests()
+        .then(({ received }) => setRequestCount(received.length))
+        .catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleLogout = async () => {
     await logout();
@@ -33,6 +49,14 @@ export default function Navbar() {
           <div className="flex items-center gap-5">
             <NavLink to="/history" className={linkClass}>History</NavLink>
             <NavLink to="/stats"   className={linkClass}>Stats</NavLink>
+            <NavLink to="/friends" className={(props) => cn(linkClass(props), 'relative')}>
+              Friends
+              {requestCount > 0 && (
+                <span className="absolute -top-1 -right-3 bg-accent text-bg text-[.55rem] font-bold rounded-full w-[14px] h-[14px] flex items-center justify-center">
+                  {requestCount}
+                </span>
+              )}
+            </NavLink>
           </div>
         )}
 
