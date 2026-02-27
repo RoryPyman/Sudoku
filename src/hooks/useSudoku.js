@@ -11,6 +11,8 @@ import {
   boxOf,
 } from '../lib/sudoku.js';
 
+const emptyNotes = () => new Array(81).fill(null).map(() => []);
+
 /**
  * useSudoku — central game state and logic.
  */
@@ -24,10 +26,12 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
   const [history, setHistory] = useState([]);
   const [won, setWon] = useState(false);
   const [hintsUsed, setHintsUsed] = useState(0);
-  const [spotlightCell, setSpotlightCell] = useState(null);  // tier-1 hint
-  const [eliminationInfo, setEliminationInfo] = useState(null); // tier-2 hint
-  const [strategyInfo, setStrategyInfo] = useState(null);    // tier-3 hint
+  const [spotlightCell, setSpotlightCell] = useState(null);
+  const [eliminationInfo, setEliminationInfo] = useState(null);
+  const [strategyInfo, setStrategyInfo] = useState(null);
   const [hintType, setHintType] = useState('spotlight');
+  const [notes, setNotes] = useState(emptyNotes);
+  const [notesMode, setNotesMode] = useState(false);
 
   // ── New Game ────────────────────────────────────────────────
 
@@ -44,37 +48,81 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     setSpotlightCell(null);
     setEliminationInfo(null);
     setStrategyInfo(null);
+    setNotes(emptyNotes());
+    setNotesMode(false);
     onTimerReset();
   }, [difficulty, onTimerReset]);
 
-  // Start first game on mount
   useEffect(() => {
     newGame();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Helper: push undo snapshot ────────────────────────────
+
+  const pushUndo = useCallback(() => {
+    setHistory(h => [...h, { grid: [...grid], notes: notes.map(n => [...n]) }]);
+  }, [grid, notes]);
+
+  // ── Helper: clear a number from notes in same row/col/box ──
+
+  const clearNoteFromPeers = useCallback((cellIdx, num) => {
+    const [r, c] = rc(cellIdx);
+    const boxR = Math.floor(r / 3) * 3;
+    const boxC = Math.floor(c / 3) * 3;
+    setNotes(prev => {
+      const next = prev.map(n => [...n]);
+      for (let i = 0; i < 9; i++) {
+        next[idx(r, i)] = next[idx(r, i)].filter(n => n !== num);
+        next[idx(i, c)] = next[idx(i, c)].filter(n => n !== num);
+      }
+      for (let dr = 0; dr < 3; dr++)
+        for (let dc = 0; dc < 3; dc++)
+          next[idx(boxR + dr, boxC + dc)] = next[idx(boxR + dr, boxC + dc)].filter(n => n !== num);
+      return next;
+    });
+  }, []);
 
   // ── Cell Input ──────────────────────────────────────────────
 
   const inputNumber = useCallback((num) => {
     if (selected === null || won) return;
-    const [r, c] = rc(selected);
     if (given[selected]) return;
 
-    onTimerStart(); // start timer on first input
+    onTimerStart();
+    pushUndo();
 
-    setHistory(h => [...h, [...grid]]);
-    setGrid(prev => {
-      const next = [...prev];
-      next[selected] = num; // 0 = erase
-      return next;
-    });
+    if (notesMode && num !== 0) {
+      // Toggle note on empty cell only
+      if (grid[selected] !== 0) return;
+      setNotes(prev => {
+        const next = prev.map(n => [...n]);
+        const cell = next[selected];
+        next[selected] = cell.includes(num)
+          ? cell.filter(n => n !== num)
+          : [...cell, num].sort();
+        return next;
+      });
+    } else {
+      // Normal value entry
+      setGrid(prev => {
+        const next = [...prev];
+        next[selected] = num;
+        return next;
+      });
+      setNotes(prev => {
+        const next = prev.map(n => [...n]);
+        next[selected] = [];
+        return next;
+      });
+      if (num !== 0) clearNoteFromPeers(selected, num);
+    }
 
-    // Clear overlays
     setSpotlightCell(null);
     setEliminationInfo(null);
     setStrategyInfo(null);
-  }, [selected, won, given, grid, onTimerStart]);
+  }, [selected, won, given, grid, notesMode, onTimerStart, pushUndo, clearNoteFromPeers]);
 
-  // Win check after grid update
+  // Win check
   useEffect(() => {
     if (!won && isSolved(grid)) {
       setWon(true);
@@ -87,7 +135,8 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
   const undo = useCallback(() => {
     if (history.length === 0) return;
     const prev = history[history.length - 1];
-    setGrid(prev);
+    setGrid(prev.grid);
+    setNotes(prev.notes);
     setHistory(h => h.slice(0, -1));
     setSpotlightCell(null);
     setEliminationInfo(null);
@@ -141,27 +190,30 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     } else if (hintType === 'strategy') {
       const result = hintStrategy(grid, solution, selected !== null && grid[selected] === 0 ? selected : null);
       if (result) {
-        // Fill the cell
         onTimerStart();
-        setHistory(h => [...h, [...grid]]);
+        pushUndo();
         setGrid(prev => {
           const next = [...prev];
           next[result.cellIndex] = result.value;
           return next;
         });
+        setNotes(prev => {
+          const next = prev.map(n => [...n]);
+          next[result.cellIndex] = [];
+          return next;
+        });
+        clearNoteFromPeers(result.cellIndex, result.value);
         setSelected(result.cellIndex);
         setStrategyInfo(result);
-        // Auto-clear explanation after 4 seconds
         setTimeout(() => setStrategyInfo(null), 4000);
       }
     }
-  }, [hintType, grid, solution, selected, won, onTimerStart]);
+  }, [hintType, grid, solution, selected, won, onTimerStart, pushUndo, clearNoteFromPeers]);
 
   // ── Derived / Memoized ───────────────────────────────────────
 
   const conflicts = useMemo(() => computeConflicts(grid), [grid]);
 
-  /** Highlight set for a selected cell */
   const highlights = useMemo(() => {
     if (selected === null) return new Set();
     const [r, c] = rc(selected);
@@ -176,7 +228,6 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
 
   const solutionStr = useMemo(() => solution.join(''), [solution]);
 
-  /** Cells sharing the same digit as selected */
   const sameValueCells = useMemo(() => {
     if (selected === null || grid[selected] === 0) return new Set();
     const val = grid[selected];
@@ -188,30 +239,19 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
   }, [selected, grid]);
 
   return {
-    // State
     difficulty, setDifficulty,
-    grid,
-    solution,
-    given,
+    grid, solution, given,
     selected, setSelected,
-    won,
-    hintsUsed,
+    won, hintsUsed,
     hintType, setHintType,
     spotlightCell,
     eliminationInfo, setEliminationInfo,
     strategyInfo,
-    // Derived
-    conflicts,
-    highlights,
-    sameValueCells,
-    // Actions
-    newGame,
-    inputNumber,
-    undo,
+    notes, notesMode, setNotesMode,
+    conflicts, highlights, sameValueCells,
+    newGame, inputNumber, undo,
     canUndo: history.length > 0,
     useHint,
-    // Strings for API persistence
-    puzzleStr,
-    solutionStr,
+    puzzleStr, solutionStr,
   };
 }
