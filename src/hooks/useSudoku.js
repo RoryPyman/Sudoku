@@ -176,7 +176,7 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     }
 
     clearTimeout(dismissTimer.current);
-    dismissTimer.current = setTimeout(clearHint, 6000);
+    dismissTimer.current = setTimeout(clearHint, 15000);
   }, [hintType, grid, won, onTimerStart, pushUndo, clearHint, clearNoteFromPeers]);
 
   useEffect(() => () => clearTimeout(dismissTimer.current), []);

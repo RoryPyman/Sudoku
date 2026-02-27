@@ -17,7 +17,7 @@ export default {
         'scale-in':   'scaleIn 350ms cubic-bezier(.34,1.56,.64,1) forwards',
         'sparkle':    'sparkle 2s ease-in-out infinite alternate',
         'fade-bar':   'fadeBarExpand 4s linear forwards',
-        'countdown':  'countdownShrink 6s linear forwards',
+        'countdown':  'countdownShrink 15s linear forwards',
       },
 
       keyframes: {
