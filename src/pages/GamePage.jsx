@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimer }   from '../hooks/useTimer.js';
 import { useSudoku }  from '../hooks/useSudoku.js';
@@ -17,38 +17,15 @@ export default function GamePage() {
   const navigate  = useNavigate();
   const { newGame, difficulty } = sudoku;
 
-  // Track the current server-side game record id (null when anonymous)
-  const gameIdRef = useRef(null);
-
-  // ── Create a game record when a new game starts ──────────────────────────
-  // puzzleStr is set synchronously inside newGame(), so by the time React
-  // re-renders (and this effect fires) the value is already up to date.
+  // ── Save completed game — single write on win ─────────────────────────────
   useEffect(() => {
-    if (!user || !sudoku.puzzleStr) return;
-
-    // Abandon the previous in-progress record, if any
-    if (gameIdRef.current) {
-      gamesApi.update(gameIdRef.current, { status: 'abandoned' }).catch(() => {});
-      gameIdRef.current = null;
-    }
+    if (!sudoku.won || !user || timer.seconds === 0) return;
 
     gamesApi
       .create({
-        difficulty: sudoku.difficulty,
-        puzzle:     sudoku.puzzleStr,
-        solution:   sudoku.solutionStr,
-      })
-      .then(({ game }) => { gameIdRef.current = game._id; })
-      .catch(() => {});
-  }, [sudoku.puzzleStr]); // fires every time a new puzzle is generated
-
-  // ── Save completed game ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!sudoku.won || !user || !gameIdRef.current) return;
-
-    gamesApi
-      .update(gameIdRef.current, {
-        status:      'completed',
+        difficulty:  sudoku.difficulty,
+        puzzle:      sudoku.puzzleStr,
+        solution:    sudoku.solutionStr,
         userGrid:    sudoku.grid.join(''),
         hintsUsed:   sudoku.hintsUsed,
         timeSeconds: timer.seconds,

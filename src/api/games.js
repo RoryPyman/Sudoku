@@ -4,9 +4,6 @@ export const gamesApi = {
   create: (payload) =>
     api.post('/games', payload).then(r => r.data),
 
-  update: (id, payload) =>
-    api.patch(`/games/${id}`, payload).then(r => r.data),
-
   list: (params = {}) =>
     api.get('/games', { params }).then(r => r.data),
 
