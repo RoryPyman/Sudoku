@@ -52,6 +52,8 @@ export default function GamePage() {
           canUndo={sudoku.canUndo}
           timerFormatted={timer.formatted}
           won={sudoku.won}
+          notesMode={sudoku.notesMode}
+          onToggleNotes={() => sudoku.setNotesMode(m => !m)}
         />
 
         <div className="flex flex-row items-start gap-6 w-full justify-center max-[700px]:flex-col max-[700px]:items-center">
@@ -65,12 +67,14 @@ export default function GamePage() {
               sameValueCells={sudoku.sameValueCells}
               spotlightCell={sudoku.spotlightCell}
               eliminationInfo={sudoku.eliminationInfo}
+              notes={sudoku.notes}
               onSelect={sudoku.setSelected}
             />
             <NumberPad
               onInput={sudoku.inputNumber}
               selected={sudoku.selected}
               given={sudoku.given}
+              notesMode={sudoku.notesMode}
             />
           </div>
 

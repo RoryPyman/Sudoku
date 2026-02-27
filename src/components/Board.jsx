@@ -15,6 +15,7 @@ export default function Board({
   sameValueCells,
   spotlightCell,
   eliminationInfo,
+  notes,
   onSelect,
 }) {
   const handleSelect = useCallback((i) => onSelect(i), [onSelect]);
@@ -37,6 +38,7 @@ export default function Board({
           isConflict={conflicts[i]}
           isSpotlight={i === spotlightCell}
           hasElim={eliminationInfo?.cellIndex === i}
+          cellNotes={notes[i]}
           onSelect={handleSelect}
         />
       ))}

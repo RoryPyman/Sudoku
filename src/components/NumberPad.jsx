@@ -1,10 +1,6 @@
 import { memo } from 'react';
 
-/**
- * NumberPad — on-screen number input (1–9 + erase).
- * Hidden on desktop (≥700 px), shown as a 5-column grid on mobile.
- */
-const NumberPad = memo(function NumberPad({ onInput, selected, given }) {
+const NumberPad = memo(function NumberPad({ onInput, selected, given, notesMode }) {
   const disabled = selected === null || (selected !== null && given[selected]);
 
   return (
@@ -19,7 +15,8 @@ const NumberPad = memo(function NumberPad({ onInput, selected, given }) {
           className={[
             'aspect-square flex items-center justify-center rounded-lg',
             'border border-border-cell bg-bg-surface',
-            'font-mono text-[1.2rem] font-medium text-text-primary',
+            'font-mono font-medium',
+            notesMode ? 'text-[.9rem] text-slate-400' : 'text-[1.2rem] text-text-primary',
             'transition-colors duration-[120ms]',
             'disabled:opacity-[.38] disabled:cursor-not-allowed',
             'hover:enabled:bg-bg-hover hover:enabled:border-accent-dim',
@@ -27,13 +24,12 @@ const NumberPad = memo(function NumberPad({ onInput, selected, given }) {
           ].join(' ')}
           onClick={() => onInput(n)}
           disabled={disabled}
-          aria-label={`Enter ${n}`}
+          aria-label={notesMode ? `Toggle note ${n}` : `Enter ${n}`}
         >
           {n}
         </button>
       ))}
 
-      {/* Erase — placed in column 5 (last) */}
       <button
         className={[
           'aspect-square flex items-center justify-center rounded-lg col-start-5',
