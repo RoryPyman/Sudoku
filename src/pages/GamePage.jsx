@@ -1,0 +1,125 @@
+import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTimer }   from '../hooks/useTimer.js';
+import { useSudoku }  from '../hooks/useSudoku.js';
+import { useAuth }    from '../context/AuthContext.jsx';
+import { gamesApi }   from '../api/games.js';
+import Board       from '../components/Board.jsx';
+import Controls    from '../components/Controls.jsx';
+import HintPanel   from '../components/HintPanel.jsx';
+import NumberPad   from '../components/NumberPad.jsx';
+import WinModal    from '../components/WinModal.jsx';
+
+export default function GamePage() {
+  const timer  = useTimer();
+  const sudoku = useSudoku(timer.start, timer.stop, timer.reset);
+  const { user } = useAuth();
+  const navigate  = useNavigate();
+  const { newGame, difficulty } = sudoku;
+
+  // Track the current server-side game record id (null when anonymous)
+  const gameIdRef = useRef(null);
+
+  // ── Create a game record when a new game starts ──────────────────────────
+  // puzzleStr is set synchronously inside newGame(), so by the time React
+  // re-renders (and this effect fires) the value is already up to date.
+  useEffect(() => {
+    if (!user || !sudoku.puzzleStr) return;
+
+    // Abandon the previous in-progress record, if any
+    if (gameIdRef.current) {
+      gamesApi.update(gameIdRef.current, { status: 'abandoned' }).catch(() => {});
+      gameIdRef.current = null;
+    }
+
+    gamesApi
+      .create({
+        difficulty: sudoku.difficulty,
+        puzzle:     sudoku.puzzleStr,
+        solution:   sudoku.solutionStr,
+      })
+      .then(({ game }) => { gameIdRef.current = game._id; })
+      .catch(() => {});
+  }, [sudoku.puzzleStr]); // fires every time a new puzzle is generated
+
+  // ── Save completed game ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!sudoku.won || !user || !gameIdRef.current) return;
+
+    gamesApi
+      .update(gameIdRef.current, {
+        status:      'completed',
+        userGrid:    sudoku.grid.join(''),
+        hintsUsed:   sudoku.hintsUsed,
+        timeSeconds: timer.seconds,
+      })
+      .catch(() => {});
+  }, [sudoku.won]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="flex flex-col min-h-[calc(100dvh-2.75rem)] px-4 pb-8">
+
+      {/* Page heading */}
+      <header className="text-center pt-6 pb-3">
+        <h1 className="font-title text-[clamp(2rem,5vw,3.25rem)] font-bold text-accent tracking-[.04em] [text-shadow:0_0_40px_rgba(201,169,110,.35)]">
+          Sudoku
+        </h1>
+      </header>
+
+      <main className="flex flex-col items-center gap-4 w-full max-w-[900px] mx-auto">
+        <Controls
+          difficulty={sudoku.difficulty}
+          onDifficulty={sudoku.setDifficulty}
+          onNewGame={newGame}
+          onUndo={sudoku.undo}
+          canUndo={sudoku.canUndo}
+          timerFormatted={timer.formatted}
+          won={sudoku.won}
+        />
+
+        <div className="flex flex-row items-start gap-6 w-full justify-center max-[700px]:flex-col max-[700px]:items-center">
+          <div className="flex flex-col items-center gap-4">
+            <Board
+              grid={sudoku.grid}
+              given={sudoku.given}
+              selected={sudoku.selected}
+              conflicts={sudoku.conflicts}
+              highlights={sudoku.highlights}
+              sameValueCells={sudoku.sameValueCells}
+              spotlightCell={sudoku.spotlightCell}
+              eliminationInfo={sudoku.eliminationInfo}
+              onSelect={sudoku.setSelected}
+            />
+            <NumberPad
+              onInput={sudoku.inputNumber}
+              selected={sudoku.selected}
+              given={sudoku.given}
+            />
+          </div>
+
+          <aside className="w-[220px] flex-shrink-0 max-[700px]:w-[min(540px,94vw)]">
+            <HintPanel
+              hintType={sudoku.hintType}
+              onHintType={sudoku.setHintType}
+              onUseHint={sudoku.useHint}
+              hintsUsed={sudoku.hintsUsed}
+              eliminationInfo={sudoku.eliminationInfo}
+              strategyInfo={sudoku.strategyInfo}
+              won={sudoku.won}
+            />
+          </aside>
+        </div>
+      </main>
+
+      {sudoku.won && (
+        <WinModal
+          timerFormatted={timer.formatted}
+          difficulty={difficulty}
+          hintsUsed={sudoku.hintsUsed}
+          onNewGame={() => newGame(difficulty)}
+          onViewStats={user ? () => navigate('/stats') : null}
+        />
+      )}
+    </div>
+  );
+}
