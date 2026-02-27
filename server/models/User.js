@@ -7,8 +7,24 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
+      lowercase: true,
       minlength: 3,
       maxlength: 20,
+      match: /^[a-z0-9_]{3,20}$/,
+    },
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 1,
+      maxlength: 50,
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 1,
+      maxlength: 50,
     },
     email: {
       type: String,
@@ -21,21 +37,35 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    /** Hashed refresh tokens — max 5, oldest pruned on overflow */
     refreshTokens: {
       type: [String],
       default: [],
     },
+    friends: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    friendRequestsSent: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    friendRequestsReceived: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
   },
   { timestamps: true },
 );
 
-/** Return a safe public view — never expose passwordHash or refreshTokens */
+userSchema.index({ username: 1 });
+userSchema.index({ firstName: 1, lastName: 1 });
+
 userSchema.methods.toPublicJSON = function () {
   return {
     id:        this._id.toString(),
     username:  this.username,
-    email:     this.email,
+    firstName: this.firstName,
+    lastName:  this.lastName,
     createdAt: this.createdAt,
   };
 };
