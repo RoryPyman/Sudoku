@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import { useFriends } from '../hooks/useFriends.js';
+import ProfileDrawer from '../components/ProfileDrawer.jsx';
 import { cn } from '../lib/cn.js';
 
 const TABS = ['My Friends', 'Requests', 'Find Friends'];
 
-function UserRow({ user, actions }) {
+function UserRow({ user, actions, onNameClick }) {
   return (
     <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-bg-hover transition-colors">
       <div>
-        <span className="text-sm text-text-primary font-medium">
+        <span
+          className={cn(
+            'text-sm text-text-primary font-medium',
+            onNameClick && 'cursor-pointer hover:text-accent transition-colors duration-[120ms]',
+          )}
+          onClick={onNameClick}
+        >
           {user.firstName} {user.lastName}
         </span>
         <span className="text-[.75rem] text-text-muted ml-2">@{user.username}</span>
@@ -22,6 +29,7 @@ export default function FriendsPage() {
   const [tab, setTab] = useState(0);
   const [query, setQuery] = useState('');
   const [confirmRemove, setConfirmRemove] = useState(null);
+  const [drawerUsername, setDrawerUsername] = useState(null);
   const f = useFriends();
 
   const handleSearch = (e) => {
@@ -39,6 +47,7 @@ export default function FriendsPage() {
   }
 
   return (
+    <>
     <div className="min-h-[calc(100dvh-2.75rem)] px-4 py-8">
       <div className="max-w-[600px] mx-auto">
         <h1 className="font-title text-[1.8rem] font-bold text-accent mb-6 text-center">Friends</h1>
@@ -76,6 +85,7 @@ export default function FriendsPage() {
                 <UserRow
                   key={u.userId}
                   user={u}
+                  onNameClick={() => setDrawerUsername(u.username)}
                   actions={
                     confirmRemove === u.userId ? (
                       <>
@@ -226,5 +236,11 @@ export default function FriendsPage() {
         )}
       </div>
     </div>
+
+    <ProfileDrawer
+      username={drawerUsername}
+      onClose={() => setDrawerUsername(null)}
+    />
+    </>
   );
 }
