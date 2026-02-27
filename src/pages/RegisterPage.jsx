@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { authApi } from '../api/auth.js';
 
 const PASSWORD_HINTS = [
   'At least 8 characters',
@@ -9,16 +10,41 @@ const PASSWORD_HINTS = [
   'One special character',
 ];
 
+const INPUT = 'bg-bg-surface2 border border-border-cell rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors duration-[120ms]';
+
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate     = useNavigate();
 
-  const [username, setUsername] = useState('');
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
-  const [details,  setDetails]  = useState([]);
-  const [loading,  setLoading]  = useState(false);
+  const [firstName, setFirstName]     = useState('');
+  const [lastName,  setLastName]      = useState('');
+  const [username,  setUsername]       = useState('');
+  const [email,     setEmail]         = useState('');
+  const [password,  setPassword]      = useState('');
+  const [error,     setError]         = useState('');
+  const [details,   setDetails]       = useState([]);
+  const [loading,   setLoading]       = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState(null); // null | 'checking' | 'available' | 'taken'
+
+  // Debounced username availability check
+  const timerRef = useRef(null);
+  useEffect(() => {
+    clearTimeout(timerRef.current);
+    if (username.length < 3 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameStatus(null);
+      return;
+    }
+    setUsernameStatus('checking');
+    timerRef.current = setTimeout(async () => {
+      try {
+        const { available } = await authApi.checkUsername(username);
+        setUsernameStatus(available ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus(null);
+      }
+    }, 500);
+    return () => clearTimeout(timerRef.current);
+  }, [username]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -26,7 +52,7 @@ export default function RegisterPage() {
     setDetails([]);
     setLoading(true);
     try {
-      await register(username, email, password);
+      await register({ firstName, lastName, username, email, password });
       navigate('/');
     } catch (err) {
       const data = err.response?.data;
@@ -56,6 +82,31 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            <label className="flex flex-col gap-1 flex-1">
+              <span className="text-[.75rem] text-text-muted">First Name</span>
+              <input
+                type="text"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                required
+                autoComplete="given-name"
+                className={INPUT}
+              />
+            </label>
+            <label className="flex flex-col gap-1 flex-1">
+              <span className="text-[.75rem] text-text-muted">Last Name</span>
+              <input
+                type="text"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                required
+                autoComplete="family-name"
+                className={INPUT}
+              />
+            </label>
+          </div>
+
           <label className="flex flex-col gap-1">
             <span className="text-[.75rem] text-text-muted">Username</span>
             <input
@@ -66,8 +117,17 @@ export default function RegisterPage() {
               minLength={3}
               maxLength={20}
               autoComplete="username"
-              className="bg-bg-surface2 border border-border-cell rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors duration-[120ms]"
+              className={INPUT}
             />
+            {usernameStatus === 'checking' && (
+              <span className="text-[.68rem] text-text-dim">Checking...</span>
+            )}
+            {usernameStatus === 'available' && (
+              <span className="text-[.68rem] text-green-400">Username available</span>
+            )}
+            {usernameStatus === 'taken' && (
+              <span className="text-[.68rem] text-cell-conflict">Username taken</span>
+            )}
           </label>
 
           <label className="flex flex-col gap-1">
@@ -78,7 +138,7 @@ export default function RegisterPage() {
               onChange={e => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="bg-bg-surface2 border border-border-cell rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors duration-[120ms]"
+              className={INPUT}
             />
           </label>
 
@@ -90,7 +150,7 @@ export default function RegisterPage() {
               onChange={e => setPassword(e.target.value)}
               required
               autoComplete="new-password"
-              className="bg-bg-surface2 border border-border-cell rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors duration-[120ms]"
+              className={INPUT}
             />
             <ul className="mt-1 space-y-[2px]">
               {PASSWORD_HINTS.map(h => (
@@ -106,7 +166,7 @@ export default function RegisterPage() {
             disabled={loading}
             className="ctrl-btn ctrl-btn-accent justify-center mt-1 py-2 text-[.85rem]"
           >
-            {loading ? 'Creating account…' : 'Create Account'}
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 

@@ -41,7 +41,7 @@ export default function Navbar() {
           {user ? (
             <>
               <span className="text-[.78rem] text-text-muted hidden sm:block">
-                {user.username}
+                {user.firstName}
               </span>
               <button
                 className="ctrl-btn text-[.78rem] py-[.3rem] px-[.7rem]"

@@ -1,8 +1,11 @@
 import api from './client.js';
 
 export const authApi = {
-  register: (username, email, password) =>
-    api.post('/auth/register', { username, email, password }).then(r => r.data),
+  register: ({ firstName, lastName, username, email, password }) =>
+    api.post('/auth/register', { firstName, lastName, username, email, password }).then(r => r.data),
+
+  checkUsername: (username) =>
+    api.get('/auth/check-username', { params: { username } }).then(r => r.data),
 
   login: (identifier, password) =>
     api.post('/auth/login', { identifier, password }).then(r => r.data),

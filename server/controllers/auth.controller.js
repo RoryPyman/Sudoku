@@ -22,17 +22,17 @@ function cookieOptions() {
 
 export async function register(req, res, next) {
   try {
-    const { username, email, password } = req.body;
+    const { username, firstName, lastName, email, password } = req.body;
 
     const [takenUsername, takenEmail] = await Promise.all([
-      User.findOne({ username }),
+      User.findOne({ username: username.toLowerCase() }),
       User.findOne({ email }),
     ]);
     if (takenUsername) return res.status(409).json({ error: 'Conflict', message: 'Username already taken' });
     if (takenEmail)    return res.status(409).json({ error: 'Conflict', message: 'Email already registered' });
 
     const passwordHash   = await bcrypt.hash(password, SALT_ROUNDS);
-    const user           = await User.create({ username, email, passwordHash });
+    const user           = await User.create({ username, firstName, lastName, email, passwordHash });
     const accessToken    = generateAccessToken(user._id);
     const refreshToken   = generateRefreshToken(user._id);
     const hashedRefresh  = await bcrypt.hash(refreshToken, SALT_ROUNDS);
@@ -55,9 +55,8 @@ export async function login(req, res, next) {
   try {
     const { identifier, password } = req.body;
 
-    // Accept email or username
     const user = await User.findOne({
-      $or: [{ email: identifier.toLowerCase() }, { username: identifier }],
+      $or: [{ email: identifier.toLowerCase() }, { username: identifier.toLowerCase() }],
     });
 
     const valid = user && await bcrypt.compare(password, user.passwordHash);
@@ -181,6 +180,19 @@ export async function getMe(req, res, next) {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ error: 'NotFound', message: 'User not found' });
     res.json({ user: user.toPublicJSON() });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── GET /api/auth/check-username ──────────────────────────────────────────
+
+export async function checkUsername(req, res, next) {
+  try {
+    const { username } = req.query;
+    if (!username || username.length < 3) return res.json({ available: false });
+    const exists = await User.findOne({ username: username.toLowerCase() });
+    res.json({ available: !exists });
   } catch (err) {
     next(err);
   }

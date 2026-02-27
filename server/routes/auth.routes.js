@@ -14,7 +14,15 @@ const passwordRule = z
   .regex(/[0-9]/, 'Password must contain at least one number')
   .regex(/[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?]/, 'Password must contain at least one special character');
 
+const nameRule = z
+  .string()
+  .min(1, 'Required')
+  .max(50)
+  .regex(/^[a-zA-Z'-]+$/, 'Letters, hyphens, and apostrophes only');
+
 const registerSchema = z.object({
+  firstName: nameRule,
+  lastName:  nameRule,
   username: z
     .string()
     .min(3, 'Username must be at least 3 characters')
@@ -29,10 +37,11 @@ const loginSchema = z.object({
   password:   z.string().min(1, 'Password is required'),
 });
 
-router.post('/register', authLimiter, validate(registerSchema), ctrl.register);
-router.post('/login',    authLimiter, validate(loginSchema),    ctrl.login);
-router.post('/refresh',  authLimiter,                           ctrl.refresh);
-router.post('/logout',                                          ctrl.logout);
-router.get( '/me',       authenticate,                          ctrl.getMe);
+router.post('/register',    authLimiter, validate(registerSchema), ctrl.register);
+router.post('/login',       authLimiter, validate(loginSchema),    ctrl.login);
+router.post('/refresh',     authLimiter,                           ctrl.refresh);
+router.post('/logout',                                             ctrl.logout);
+router.get( '/me',          authenticate,                          ctrl.getMe);
+router.get( '/check-username', authLimiter,                        ctrl.checkUsername);
 
 export default router;
