@@ -1,11 +1,11 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   generatePuzzle,
+  computeCandidates,
   computeConflicts,
   isSolved,
-  hintSpotlight,
-  hintElimination,
-  hintStrategy,
+  findHint,
+  hintFingerprint,
   idx,
   rc,
   boxOf,
@@ -13,25 +13,23 @@ import {
 
 const emptyNotes = () => new Array(81).fill(null).map(() => []);
 
-/**
- * useSudoku — central game state and logic.
- */
 export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
   const [difficulty, setDifficulty] = useState('medium');
-  const [grid, setGrid] = useState(() => new Array(81).fill(0));
+  const [grid, setGrid]       = useState(() => new Array(81).fill(0));
   const [solution, setSolution] = useState(() => new Array(81).fill(0));
-  const [given, setGiven] = useState(() => new Array(81).fill(false));
+  const [given, setGiven]     = useState(() => new Array(81).fill(false));
   const [puzzleStr, setPuzzleStr] = useState('');
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
-  const [won, setWon] = useState(false);
+  const [won, setWon]         = useState(false);
   const [hintsUsed, setHintsUsed] = useState(0);
-  const [spotlightCell, setSpotlightCell] = useState(null);
-  const [eliminationInfo, setEliminationInfo] = useState(null);
-  const [strategyInfo, setStrategyInfo] = useState(null);
   const [hintType, setHintType] = useState('spotlight');
-  const [notes, setNotes] = useState(emptyNotes);
+  const [hintResult, setHintResult] = useState(null);
+  const [notes, setNotes]     = useState(emptyNotes);
   const [notesMode, setNotesMode] = useState(false);
+
+  const shownHints   = useRef(new Set());
+  const dismissTimer = useRef(null);
 
   // ── New Game ────────────────────────────────────────────────
 
@@ -45,25 +43,21 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     setHistory([]);
     setWon(false);
     setHintsUsed(0);
-    setSpotlightCell(null);
-    setEliminationInfo(null);
-    setStrategyInfo(null);
+    setHintResult(null);
     setNotes(emptyNotes());
     setNotesMode(false);
+    shownHints.current = new Set();
+    clearTimeout(dismissTimer.current);
     onTimerReset();
   }, [difficulty, onTimerReset]);
 
-  useEffect(() => {
-    newGame();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { newGame(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Helper: push undo snapshot ────────────────────────────
+  // ── Helpers ─────────────────────────────────────────────────
 
   const pushUndo = useCallback(() => {
     setHistory(h => [...h, { grid: [...grid], notes: notes.map(n => [...n]) }]);
   }, [grid, notes]);
-
-  // ── Helper: clear a number from notes in same row/col/box ──
 
   const clearNoteFromPeers = useCallback((cellIdx, num) => {
     const [r, c] = rc(cellIdx);
@@ -82,6 +76,11 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     });
   }, []);
 
+  const clearHint = useCallback(() => {
+    clearTimeout(dismissTimer.current);
+    setHintResult(null);
+  }, []);
+
   // ── Cell Input ──────────────────────────────────────────────
 
   const inputNumber = useCallback((num) => {
@@ -90,44 +89,28 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
 
     onTimerStart();
     pushUndo();
+    clearHint();
 
     if (notesMode && num !== 0) {
-      // Toggle note on empty cell only
       if (grid[selected] !== 0) return;
       setNotes(prev => {
         const next = prev.map(n => [...n]);
         const cell = next[selected];
         next[selected] = cell.includes(num)
           ? cell.filter(n => n !== num)
-          : [...cell, num].sort();
+          : [...cell, num].sort((a, b) => a - b);
         return next;
       });
     } else {
-      // Normal value entry
-      setGrid(prev => {
-        const next = [...prev];
-        next[selected] = num;
-        return next;
-      });
-      setNotes(prev => {
-        const next = prev.map(n => [...n]);
-        next[selected] = [];
-        return next;
-      });
+      setGrid(prev => { const next = [...prev]; next[selected] = num; return next; });
+      setNotes(prev => { const next = prev.map(n => [...n]); next[selected] = []; return next; });
       if (num !== 0) clearNoteFromPeers(selected, num);
     }
-
-    setSpotlightCell(null);
-    setEliminationInfo(null);
-    setStrategyInfo(null);
-  }, [selected, won, given, grid, notesMode, onTimerStart, pushUndo, clearNoteFromPeers]);
+  }, [selected, won, given, grid, notesMode, onTimerStart, pushUndo, clearHint, clearNoteFromPeers]);
 
   // Win check
   useEffect(() => {
-    if (!won && isSolved(grid)) {
-      setWon(true);
-      onTimerStop();
-    }
+    if (!won && isSolved(grid)) { setWon(true); onTimerStop(); }
   }, [grid, won, onTimerStop]);
 
   // ── Undo ────────────────────────────────────────────────────
@@ -138,18 +121,14 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     setGrid(prev.grid);
     setNotes(prev.notes);
     setHistory(h => h.slice(0, -1));
-    setSpotlightCell(null);
-    setEliminationInfo(null);
-    setStrategyInfo(null);
-  }, [history]);
+    clearHint();
+  }, [history, clearHint]);
 
   // Keyboard handler
   useEffect(() => {
     const handler = (e) => {
       if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); return; }
-
       if (selected === null) return;
-
       if (e.key >= '1' && e.key <= '9') inputNumber(Number(e.key));
       else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') inputNumber(0);
       else if (e.key === 'ArrowUp')    setSelected(s => s !== null && s >= 9  ? s - 9 : s);
@@ -166,51 +145,43 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
   const useHint = useCallback(() => {
     if (won) return;
 
-    setHintsUsed(h => h + 1);
-    setSpotlightCell(null);
-    setEliminationInfo(null);
-    setStrategyInfo(null);
+    const result = findHint(grid, hintType, shownHints.current);
+    if (!result) return;
 
-    if (hintType === 'spotlight') {
-      const result = hintSpotlight(grid);
-      if (result) {
-        setSpotlightCell(result.cellIndex);
-        setSelected(result.cellIndex);
-      }
-    } else if (hintType === 'elimination') {
-      const target = selected !== null && grid[selected] === 0 ? selected : (() => {
-        for (let i = 0; i < 81; i++) if (grid[i] === 0) return i;
-        return null;
-      })();
-      if (target !== null) {
-        const info = hintElimination(grid, target);
-        setEliminationInfo({ cellIndex: target, ...info });
-        setSelected(target);
-      }
-    } else if (hintType === 'strategy') {
-      const result = hintStrategy(grid, solution, selected !== null && grid[selected] === 0 ? selected : null);
-      if (result) {
-        onTimerStart();
-        pushUndo();
-        setGrid(prev => {
-          const next = [...prev];
-          next[result.cellIndex] = result.value;
-          return next;
-        });
+    setHintsUsed(h => h + 1);
+    shownHints.current.add(hintFingerprint(result));
+    setHintResult(result);
+    setSelected(result.targetCells[0] ?? null);
+
+    if (hintType === 'hard') {
+      onTimerStart();
+      pushUndo();
+
+      if (result.setValue) {
+        const { cell, value } = result.setValue;
+        setGrid(prev => { const next = [...prev]; next[cell] = value; return next; });
+        setNotes(prev => { const next = prev.map(n => [...n]); next[cell] = []; return next; });
+        clearNoteFromPeers(cell, value);
+      } else if (result.eliminatedCandidates.size > 0) {
+        const computed = computeCandidates(grid);
         setNotes(prev => {
           const next = prev.map(n => [...n]);
-          next[result.cellIndex] = [];
+          for (const [cellIdx, removed] of result.eliminatedCandidates) {
+            const base = [...computed[cellIdx]];
+            next[cellIdx] = base.filter(d => !removed.includes(d));
+          }
           return next;
         });
-        clearNoteFromPeers(result.cellIndex, result.value);
-        setSelected(result.cellIndex);
-        setStrategyInfo(result);
-        setTimeout(() => setStrategyInfo(null), 4000);
       }
     }
-  }, [hintType, grid, solution, selected, won, onTimerStart, pushUndo, clearNoteFromPeers]);
 
-  // ── Derived / Memoized ───────────────────────────────────────
+    clearTimeout(dismissTimer.current);
+    dismissTimer.current = setTimeout(clearHint, 6000);
+  }, [hintType, grid, won, onTimerStart, pushUndo, clearHint, clearNoteFromPeers]);
+
+  useEffect(() => () => clearTimeout(dismissTimer.current), []);
+
+  // ── Derived ──────────────────────────────────────────────────
 
   const conflicts = useMemo(() => computeConflicts(grid), [grid]);
 
@@ -232,9 +203,7 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     if (selected === null || grid[selected] === 0) return new Set();
     const val = grid[selected];
     const set = new Set();
-    for (let i = 0; i < 81; i++) {
-      if (grid[i] === val) set.add(i);
-    }
+    for (let i = 0; i < 81; i++) if (grid[i] === val) set.add(i);
     return set;
   }, [selected, grid]);
 
@@ -244,9 +213,7 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     selected, setSelected,
     won, hintsUsed,
     hintType, setHintType,
-    spotlightCell,
-    eliminationInfo, setEliminationInfo,
-    strategyInfo,
+    hintResult, clearHint,
     notes, notesMode, setNotesMode,
     conflicts, highlights, sameValueCells,
     newGame, inputNumber, undo,
