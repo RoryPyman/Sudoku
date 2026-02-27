@@ -10,7 +10,7 @@ const PASSWORD_HINTS = [
   'One special character',
 ];
 
-const INPUT = 'bg-bg-surface2 border border-border-cell rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors duration-[120ms]';
+const INPUT = 'w-full min-w-0 bg-bg-surface2 border border-border-cell rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors duration-[120ms]';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -65,7 +65,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[calc(100dvh-2.75rem)] flex items-center justify-center bg-bg px-4 py-8">
-      <div className="w-full max-w-sm bg-bg-surface border border-border-cell rounded-xl p-8 shadow-[0_8px_32px_rgba(0,0,0,.5)]">
+      <div className="w-full max-w-md bg-bg-surface border border-border-cell rounded-xl p-8 shadow-[0_8px_32px_rgba(0,0,0,.5)]">
         <h2 className="font-title text-[1.8rem] font-bold text-accent mb-6 text-center">
           Create Account
         </h2>
