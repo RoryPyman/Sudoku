@@ -2,21 +2,31 @@ import { memo } from 'react';
 import { cn } from '../lib/cn.js';
 
 const HINT_TYPES = [
-  { id: 'spotlight',   tier: '1', label: 'Spotlight',   desc: 'Highlights a solvable cell' },
-  { id: 'elimination', tier: '2', label: 'Elimination', desc: 'Shows why numbers are ruled out' },
-  { id: 'strategy',    tier: '3', label: 'Strategy',    desc: 'Fills a cell with explanation' },
+  {
+    id: 'spotlight',
+    tier: '1',
+    label: 'Spotlight',
+    desc: 'Highlights a cell solvable by naked single',
+  },
+  {
+    id: 'medium',
+    tier: '2',
+    label: 'Elimination',
+    desc: 'Shows hidden singles, pairs, and locked candidates with explanation',
+  },
+  {
+    id: 'hard',
+    tier: '3',
+    label: 'Strategy',
+    desc: 'Applies the deduction — fills a cell or eliminates candidates',
+  },
 ];
 
-/**
- * HintPanel — hint type selector and hint display overlay.
- */
 const HintPanel = memo(function HintPanel({
   hintType,
   onHintType,
   onUseHint,
   hintsUsed,
-  eliminationInfo,
-  strategyInfo,
   won,
 }) {
   return (
@@ -82,46 +92,6 @@ const HintPanel = memo(function HintPanel({
         </svg>
         Use Hint
       </button>
-
-      {/* Elimination overlay */}
-      {eliminationInfo && (
-        <div className="rounded-lg p-3 text-[.75rem] leading-[1.5] bg-cell-user/[.07] border border-cell-user/20 text-text-primary animate-fade-in">
-          <p className="font-semibold text-[.8rem] text-cell-user mb-[.35rem]">
-            Eliminated numbers
-          </p>
-          {eliminationInfo.candidates.length > 0 && (
-            <p className="mb-[.35rem]">
-              Possible: <strong>{eliminationInfo.candidates.join(', ')}</strong>
-            </p>
-          )}
-          {eliminationInfo.eliminations.length > 0 ? (
-            <ul className="flex flex-col gap-[.25rem] list-none">
-              {eliminationInfo.eliminations.map(({ digit, reason }) => (
-                <li key={digit} className="flex items-center gap-[.4rem]">
-                  <span className="inline-flex items-center justify-center w-[1.4em] h-[1.4em] rounded-[3px] bg-cell-user/15 font-mono font-medium text-cell-user flex-shrink-0">
-                    {digit}
-                  </span>
-                  <span>— {reason}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No eliminations found.</p>
-          )}
-        </div>
-      )}
-
-      {/* Strategy overlay */}
-      {strategyInfo && (
-        <div className="relative rounded-lg p-3 text-[.75rem] leading-[1.5] bg-accent/[.08] border border-accent-dim text-text-primary overflow-hidden animate-fade-in">
-          <p className="font-semibold text-[.8rem] text-accent mb-[.35rem]">
-            Strategy applied
-          </p>
-          <p className="text-[.8rem] leading-[1.55]">{strategyInfo.explanation}</p>
-          {/* Fade-out bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-7 bg-gradient-to-b from-transparent to-accent/[.12] pointer-events-none animate-fade-bar" />
-        </div>
-      )}
     </div>
   );
 });

@@ -17,6 +17,7 @@ export default {
         'scale-in':   'scaleIn 350ms cubic-bezier(.34,1.56,.64,1) forwards',
         'sparkle':    'sparkle 2s ease-in-out infinite alternate',
         'fade-bar':   'fadeBarExpand 4s linear forwards',
+        'countdown':  'countdownShrink 6s linear forwards',
       },
 
       keyframes: {
@@ -43,6 +44,10 @@ export default {
         sparkle: {
           from: { opacity: '.5', textShadow: 'none' },
           to:   { opacity: '1', textShadow: `0 0 14px ${accentGlow}` },
+        },
+        countdownShrink: {
+          from: { transform: 'scaleX(1)' },
+          to:   { transform: 'scaleX(0)' },
         },
         fadeBarExpand: {
           '0%':   { height: '0',    opacity: '0' },
