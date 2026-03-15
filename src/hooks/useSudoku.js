@@ -53,6 +53,26 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
 
   useEffect(() => { newGame(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Load External Puzzle (daily mode) ───────────────────────
+
+  const loadPuzzle = useCallback((puzzleArray, diff) => {
+    setDifficulty(diff);
+    setGrid([...puzzleArray]);
+    setSolution(new Array(81).fill(0)); // solution is never sent to client
+    setGiven(puzzleArray.map(v => v !== 0));
+    setPuzzleStr(puzzleArray.join(''));
+    setSelected(null);
+    setHistory([]);
+    setWon(false);
+    setHintsUsed(0);
+    setHintResult(null);
+    setNotes(emptyNotes());
+    setNotesMode(false);
+    shownHints.current = new Set();
+    clearTimeout(dismissTimer.current);
+    onTimerReset();
+  }, [onTimerReset]);
+
   // ── Helpers ─────────────────────────────────────────────────
 
   const pushUndo = useCallback(() => {
@@ -216,7 +236,7 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     hintResult, clearHint,
     notes, notesMode, setNotesMode,
     conflicts, highlights, sameValueCells,
-    newGame, inputNumber, undo,
+    newGame, loadPuzzle, inputNumber, undo,
     canUndo: history.length > 0,
     useHint,
     puzzleStr, solutionStr,
