@@ -102,6 +102,7 @@ export async function getProfile(req, res, next) {
       : 0;
 
     res.json({
+      userId:      target._id,
       username:    target.username,
       firstName:   target.firstName,
       lastName:    target.lastName,

@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { useFriends } from '../hooks/useFriends.js';
-import ProfileDrawer from '../components/ProfileDrawer.jsx';
-import { cn } from '../lib/cn.js';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate }   from 'react-router-dom';
+import { useFriends }    from '../hooks/useFriends.js';
+import { useAuth }       from '../context/AuthContext.jsx';
+import { challengesApi } from '../api/challenges.js';
+import ProfileDrawer     from '../components/ProfileDrawer.jsx';
+import { cn }            from '../lib/cn.js';
 
-const TABS = ['My Friends', 'Requests', 'Find Friends'];
+const TABS = ['My Friends', 'Requests', 'Find Friends', 'Challenges'];
 
 function UserRow({ user, actions, onNameClick }) {
   return (
@@ -25,12 +28,203 @@ function UserRow({ user, actions, onNameClick }) {
   );
 }
 
+const DIFF_COLORS = { easy: 'text-green-400', medium: 'text-yellow-400', hard: 'text-red-400' };
+
+function ChallengeRow({ challenge, myId, onPlay, onViewBoard, onAccept, onDecline, onCancel }) {
+  const isFrom     = challenge.fromUserId?._id?.toString() === myId || challenge.fromUserId?.toString() === myId;
+  const other      = isFrom ? challenge.toUserId : challenge.fromUserId;
+  const otherName  = other?.username ? `@${other.username}` : 'Unknown';
+  const diffColor  = DIFF_COLORS[challenge.difficulty] ?? 'text-text-muted';
+
+  const expiresInDays = challenge.expiresAt
+    ? Math.ceil((new Date(challenge.expiresAt) - Date.now()) / 86400000)
+    : null;
+
+  return (
+    <div className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-bg-hover transition-colors gap-2">
+      <div className="flex flex-col min-w-0">
+        <span className="text-sm text-text-primary font-medium truncate">
+          {isFrom ? `You challenged ${otherName}` : `Challenge from ${otherName}`}
+        </span>
+        <div className="flex items-center gap-2 mt-[2px]">
+          <span className={cn('text-[.72rem] capitalize font-medium', diffColor)}>
+            {challenge.difficulty}
+          </span>
+          {expiresInDays !== null && expiresInDays > 0 && (
+            <span className="text-[.68rem] text-text-dim">· {expiresInDays}d left</span>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {onViewBoard && (
+          <button className="ctrl-btn text-[.72rem] py-1 px-2" onClick={onViewBoard}>
+            View Board
+          </button>
+        )}
+        {onPlay && (
+          <button className="ctrl-btn ctrl-btn-accent text-[.72rem] py-1 px-2" onClick={onPlay}>
+            Play
+          </button>
+        )}
+        {onAccept && (
+          <button className="ctrl-btn ctrl-btn-accent text-[.72rem] py-1 px-2" onClick={onAccept}>
+            Accept
+          </button>
+        )}
+        {onDecline && (
+          <button className="ctrl-btn text-[.72rem] py-1 px-2" onClick={onDecline}>
+            Decline
+          </button>
+        )}
+        {onCancel && (
+          <button className="ctrl-btn text-[.72rem] py-1 px-2" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChallengesTab({ myId }) {
+  const navigate  = useNavigate();
+  const [data, setData]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    challengesApi.getAll()
+      .then(setData)
+      .catch(() => setError('Failed to load challenges'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAccept = async (id) => {
+    try {
+      await challengesApi.accept(id);
+      navigate(`/challenges/${id}`);
+    } catch (err) {
+      alert(err?.response?.data?.message ?? 'Failed to accept challenge');
+    }
+  };
+
+  const handleDecline = async (id) => {
+    try {
+      await challengesApi.decline(id);
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.message ?? 'Failed to decline challenge');
+    }
+  };
+
+  const handleCancel = async (id) => {
+    try {
+      await challengesApi.cancel(id);
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.message ?? 'Failed to cancel challenge');
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-8"><span className="text-text-muted text-sm">Loading…</span></div>;
+  }
+
+  if (error) {
+    return <p className="text-text-muted text-sm text-center py-8">{error}</p>;
+  }
+
+  const { received = [], sent = [], active = [], completed = [] } = data ?? {};
+  const isEmpty = received.length + sent.length + active.length + completed.length === 0;
+
+  if (isEmpty) {
+    return (
+      <p className="text-text-muted text-sm text-center py-8">
+        No challenges yet. Open a friend's profile to send one!
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {received.length > 0 && (
+        <div>
+          <h3 className="text-[.75rem] text-text-muted uppercase tracking-widest mb-2">Received</h3>
+          <div className="flex flex-col gap-1">
+            {received.map(c => (
+              <ChallengeRow
+                key={c._id}
+                challenge={c}
+                myId={myId}
+                onAccept={() => handleAccept(c._id)}
+                onDecline={() => handleDecline(c._id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {active.length > 0 && (
+        <div>
+          <h3 className="text-[.75rem] text-text-muted uppercase tracking-widest mb-2">In Progress</h3>
+          <div className="flex flex-col gap-1">
+            {active.map(c => (
+              <ChallengeRow
+                key={c._id}
+                challenge={c}
+                myId={myId}
+                onPlay={() => navigate(`/challenges/${c._id}`)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {sent.length > 0 && (
+        <div>
+          <h3 className="text-[.75rem] text-text-muted uppercase tracking-widest mb-2">Sent</h3>
+          <div className="flex flex-col gap-1">
+            {sent.map(c => (
+              <ChallengeRow
+                key={c._id}
+                challenge={c}
+                myId={myId}
+                onCancel={() => handleCancel(c._id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {completed.length > 0 && (
+        <div>
+          <h3 className="text-[.75rem] text-text-muted uppercase tracking-widest mb-2">Completed</h3>
+          <div className="flex flex-col gap-1">
+            {completed.map(c => (
+              <ChallengeRow
+                key={c._id}
+                challenge={c}
+                myId={myId}
+                onViewBoard={() => navigate(`/challenges/${c._id}`)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FriendsPage() {
-  const [tab, setTab] = useState(0);
-  const [query, setQuery] = useState('');
+  const [tab, setTab]       = useState(0);
+  const [query, setQuery]   = useState('');
   const [confirmRemove, setConfirmRemove] = useState(null);
   const [drawerUsername, setDrawerUsername] = useState(null);
   const f = useFriends();
+  const { user } = useAuth();
 
   const handleSearch = (e) => {
     const val = e.target.value;
@@ -233,6 +427,11 @@ export default function FriendsPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Challenges */}
+        {tab === 3 && (
+          <ChallengesTab myId={user?.id} />
         )}
       </div>
     </div>

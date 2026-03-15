@@ -1,10 +1,14 @@
-import { useEffect } from 'react';
-import { useProfile } from '../hooks/useProfile.js';
-import StatsCard from './StatsCard.jsx';
-import { cn } from '../lib/cn.js';
+import { useState, useEffect } from 'react';
+import { useProfile }      from '../hooks/useProfile.js';
+import { useAuth }         from '../context/AuthContext.jsx';
+import StatsCard           from './StatsCard.jsx';
+import ChallengeModal      from './ChallengeModal.jsx';
+import ChallengeH2H        from './ChallengeH2H.jsx';
+import { cn }              from '../lib/cn.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
+// Local fmtTime — handles null/undefined → '—' (different from shared formatTime.js)
 function fmtTime(sec) {
   if (sec === null || sec === undefined) return '—';
   const m = Math.floor(sec / 60).toString().padStart(2, '0');
@@ -69,7 +73,7 @@ function DrawerSkeleton() {
 
 // ── Profile content ───────────────────────────────────────────────────────
 
-function ProfileContent({ profile }) {
+function ProfileContent({ profile, myId, onChallenge, showH2H, onToggleH2H }) {
   const { stats } = profile;
 
   // Total completions across all difficulties for proportional bar
@@ -80,8 +84,10 @@ function ProfileContent({ profile }) {
     stats.byDifficulty.hard.completed,
   );
 
+  const isOtherUser = myId && myId !== profile.userId?.toString();
+
   return (
-    <div className="flex flex-col gap-6 p-6 overflow-y-auto">
+    <div className="flex flex-col gap-6 p-6 overflow-y-auto h-full">
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className={cn(
@@ -106,9 +112,9 @@ function ProfileContent({ profile }) {
 
       {/* 3 highlight cards */}
       <div className="flex gap-3">
-        <StatsCard label="Solved"        value={stats.totalCompleted} />
-        <StatsCard label="Streak"        value={stats.currentStreak}  sub={`best ${stats.longestStreak}`} />
-        <StatsCard label="Avg hints"     value={stats.averageHintsPerGame.toFixed(1)} />
+        <StatsCard label="Solved"    value={stats.totalCompleted} />
+        <StatsCard label="Streak"    value={stats.currentStreak}  sub={`best ${stats.longestStreak}`} />
+        <StatsCard label="Avg hints" value={stats.averageHintsPerGame.toFixed(1)} />
       </div>
 
       {/* Difficulty breakdown */}
@@ -151,6 +157,36 @@ function ProfileContent({ profile }) {
           })}
         </div>
       </div>
+
+      {/* Challenge button — only shown to other users */}
+      {isOtherUser && (
+        <button
+          className="ctrl-btn ctrl-btn-accent w-full justify-center text-[.82rem] py-[.45rem]"
+          onClick={onChallenge}
+        >
+          Challenge {profile.firstName}
+        </button>
+      )}
+
+      {/* H2H section — only shown to other users */}
+      {isOtherUser && (
+        <div>
+          <button
+            className="flex items-center gap-2 text-[.7rem] text-text-dim uppercase tracking-[.07em] mb-3 w-full hover:text-text-muted transition-colors"
+            onClick={onToggleH2H}
+          >
+            Head to Head
+            <span className="ml-auto">{showH2H ? '▴' : '▾'}</span>
+          </button>
+          {showH2H && (
+            <ChallengeH2H
+              opponentUserId={profile.userId?.toString()}
+              opponentUser={profile}
+              myId={myId}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -160,10 +196,19 @@ function ProfileContent({ profile }) {
 export default function ProfileDrawer({ username, onClose }) {
   const open = Boolean(username);
   const { profile, loading, error, fetchProfile } = useProfile();
+  const { user } = useAuth();
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [toast, setToast]   = useState(null);
+  const [showH2H, setShowH2H] = useState(false);
 
   useEffect(() => {
     if (username) fetchProfile(username);
   }, [username, fetchProfile]);
+
+  // Reset H2H panel when drawer switches to a different user
+  useEffect(() => {
+    setShowH2H(false);
+  }, [username]);
 
   // Lock body scroll while open
   useEffect(() => {
@@ -171,6 +216,11 @@ export default function ProfileDrawer({ username, onClose }) {
     else       document.body.style.overflow = '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
+
+  const handleChallengeSent = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   return (
     <>
@@ -187,7 +237,7 @@ export default function ProfileDrawer({ username, onClose }) {
       {/* Drawer panel */}
       <div
         className={cn(
-          'fixed top-0 right-0 z-40 h-full w-full max-w-[480px]',
+          'fixed top-0 right-0 z-40 h-full w-full max-w-[600px]',
           'bg-bg-surface border-l border-border-cell shadow-2xl',
           'flex flex-col',
           'transition-transform duration-300 ease-in-out',
@@ -219,9 +269,37 @@ export default function ProfileDrawer({ username, onClose }) {
               <p className="text-text-muted text-sm text-center">{error}</p>
             </div>
           )}
-          {!loading && !error && profile && <ProfileContent profile={profile} />}
+          {!loading && !error && profile && (
+            <ProfileContent
+              profile={profile}
+              myId={user?.id}
+              onChallenge={() => setShowChallengeModal(true)}
+              showH2H={showH2H}
+              onToggleH2H={() => setShowH2H(v => !v)}
+            />
+          )}
         </div>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-bg-surface border border-accent-dim text-accent text-sm px-5 py-2 rounded-full shadow-lg animate-fade-in">
+          {toast}
+        </div>
+      )}
+
+      {/* Challenge modal */}
+      {showChallengeModal && profile && (
+        <ChallengeModal
+          toUser={{
+            userId:    profile.userId?.toString(),
+            username:  profile.username,
+            firstName: profile.firstName,
+          }}
+          onClose={() => setShowChallengeModal(false)}
+          onSent={handleChallengeSent}
+        />
+      )}
     </>
   );
 }

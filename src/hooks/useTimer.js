@@ -22,6 +22,10 @@ export function useTimer() {
     setSeconds(0);
   }, []);
 
+  const resume = useCallback((secs) => {
+    setSeconds(secs);
+  }, []);
+
   useEffect(() => {
     if (running) {
       intervalRef.current = setInterval(() => {
@@ -39,5 +43,5 @@ export function useTimer() {
     return `${m}:${s}`;
   })();
 
-  return { seconds, formatted, running, start, stop, reset };
+  return { seconds, formatted, running, start, stop, reset, resume };
 }

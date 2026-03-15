@@ -73,6 +73,14 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     onTimerReset();
   }, [onTimerReset]);
 
+  // ── Restore saved progress (challenge resume) ───────────────
+
+  const restoreProgress = useCallback((savedGrid, savedNotes, savedHintsUsed = 0) => {
+    setGrid([...savedGrid]);
+    setNotes(savedNotes.map(n => [...n]));
+    setHintsUsed(savedHintsUsed);
+  }, []);
+
   // ── Helpers ─────────────────────────────────────────────────
 
   const pushUndo = useCallback(() => {
@@ -236,7 +244,7 @@ export function useSudoku(onTimerStart, onTimerStop, onTimerReset) {
     hintResult, clearHint,
     notes, notesMode, setNotesMode,
     conflicts, highlights, sameValueCells,
-    newGame, loadPuzzle, inputNumber, undo,
+    newGame, loadPuzzle, restoreProgress, inputNumber, undo,
     canUndo: history.length > 0,
     useHint,
     puzzleStr, solutionStr,

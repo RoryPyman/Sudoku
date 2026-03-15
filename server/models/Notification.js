@@ -8,7 +8,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['score_share'],
+    enum: ['score_share', 'challenge_received', 'challenge_accepted', 'challenge_declined', 'challenge_completed', 'challenge_expired', 'challenge_nudge'],
     required: true,
   },
   seenAt: { type: Date, default: null },
@@ -21,6 +21,13 @@ const notificationSchema = new mongoose.Schema({
     timeSeconds:         Number,
     hintsUsed:           Number,
     leaderboardEligible: Boolean,
+    // Challenge notification fields
+    challengeId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Challenge' },
+    difficulty:          String,
+    expiresAt:           Date,
+    winnerId:            { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    yourTime:            Number,
+    opponentTime:        Number,
   },
 }, { timestamps: true });
 
@@ -31,6 +38,12 @@ notificationSchema.index({ toUserId: 1, seenAt: 1, createdAt: -1 });
 notificationSchema.index(
   { toUserId: 1, type: 1, 'payload.fromUserId': 1, 'payload.date': 1 },
   { unique: true },
+);
+
+// Prevent duplicate challenge notifications (one per challenge event per user)
+notificationSchema.index(
+  { toUserId: 1, type: 1, 'payload.challengeId': 1 },
+  { unique: true, sparse: true, partialFilterExpression: { type: { $ne: 'score_share' } } },
 );
 
 export default mongoose.model('Notification', notificationSchema);

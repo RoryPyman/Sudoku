@@ -12,6 +12,7 @@ import friendsRouter      from './routes/friends.routes.js';
 import profileRouter      from './routes/profile.routes.js';
 import dailyRouter        from './routes/daily.routes.js';
 import notificationsRouter from './routes/notifications.routes.js';
+import challengesRouter    from './routes/challenges.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -36,6 +37,7 @@ app.use('/api/friends',       friendsRouter);
 app.use('/api/users',         profileRouter);
 app.use('/api/daily',         dailyRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/challenges',   challengesRouter);
 
 if (process.env.NODE_ENV === 'production') {
   // Serve the built React app
