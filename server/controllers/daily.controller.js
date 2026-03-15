@@ -299,6 +299,10 @@ export async function shareScore(req, res, next) {
 
     res.status(201).json({ message: 'Score shared' });
   } catch (err) {
+    // Unique index catches TOCTOU race on duplicate shares
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'Conflict', message: 'Already shared with this friend' });
+    }
     next(err);
   }
 }

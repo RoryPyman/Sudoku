@@ -27,4 +27,10 @@ const notificationSchema = new mongoose.Schema({
 // Notification bell: unseen count and dropdown list
 notificationSchema.index({ toUserId: 1, seenAt: 1, createdAt: -1 });
 
+// Prevent duplicate score shares (same sender → same recipient for same date)
+notificationSchema.index(
+  { toUserId: 1, type: 1, 'payload.fromUserId': 1, 'payload.date': 1 },
+  { unique: true },
+);
+
 export default mongoose.model('Notification', notificationSchema);

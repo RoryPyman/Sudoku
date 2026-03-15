@@ -2,13 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate }       from 'react-router-dom';
 import { useAuth }           from '../context/AuthContext.jsx';
 import { notificationsApi }  from '../api/notifications.js';
+import { fmtTime }           from '../lib/formatTime.js';
 import { cn }                from '../lib/cn.js';
-
-function fmtTime(seconds) {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
-}
 
 function relativeTime(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();

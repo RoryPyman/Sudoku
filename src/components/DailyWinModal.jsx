@@ -3,14 +3,8 @@ import { useNavigate }  from 'react-router-dom';
 import { useAuth }      from '../context/AuthContext.jsx';
 import { friendsApi }   from '../api/friends.js';
 import { dailyApi }     from '../api/daily.js';
+import { fmtTime }      from '../lib/formatTime.js';
 import LeaderboardModal from './LeaderboardModal.jsx';
-
-function fmtTime(seconds) {
-  if (!seconds && seconds !== 0) return '--:--';
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
-}
 
 function StatChip({ label, value }) {
   return (

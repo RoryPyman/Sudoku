@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth }   from '../context/AuthContext.jsx';
 import { dailyApi }  from '../api/daily.js';
+import { fmtTime }   from '../lib/formatTime.js';
 import { cn }        from '../lib/cn.js';
-
-function fmtTime(seconds) {
-  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-  const s = (seconds % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
-}
 
 function Medal({ rank }) {
   if (rank === 1) return <span aria-label="Gold"   title="1st">🥇</span>;
