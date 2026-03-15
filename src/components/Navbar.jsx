@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { friendsApi } from '../api/friends.js';
 import { cn } from '../lib/cn.js';
+import NotificationBell from './NotificationBell.jsx';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -49,6 +50,7 @@ export default function Navbar() {
           <div className="flex items-center gap-5">
             <NavLink to="/history" className={linkClass}>History</NavLink>
             <NavLink to="/stats"   className={linkClass}>Stats</NavLink>
+            <NavLink to="/daily"   className={linkClass}>Daily</NavLink>
             <NavLink to="/friends" className={(props) => cn(linkClass(props), 'relative')}>
               Friends
               {requestCount > 0 && (
@@ -67,6 +69,7 @@ export default function Navbar() {
               <span className="text-[.78rem] text-text-muted hidden sm:block">
                 {user.firstName}
               </span>
+              <NotificationBell />
               <button
                 className="ctrl-btn text-[.78rem] py-[.3rem] px-[.7rem]"
                 onClick={handleLogout}

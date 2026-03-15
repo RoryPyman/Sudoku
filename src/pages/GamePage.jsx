@@ -10,6 +10,7 @@ import HintPanel       from '../components/HintPanel.jsx';
 import HintExplanation from '../components/HintExplanation.jsx';
 import NumberPad       from '../components/NumberPad.jsx';
 import WinModal        from '../components/WinModal.jsx';
+import DailyCard       from '../components/DailyCard.jsx';
 
 export default function GamePage() {
   const timer  = useTimer();
@@ -43,6 +44,8 @@ export default function GamePage() {
       </header>
 
       <main className="flex flex-col items-center gap-4 w-full max-w-[900px] mx-auto">
+        <DailyCard />
+
         <Controls
           difficulty={sudoku.difficulty}
           onDifficulty={sudoku.setDifficulty}
