@@ -222,15 +222,14 @@ export default function DailyPage() {
         </div>
       </main>
 
-      {/* Win modal — shown once submitResult arrives */}
-      {daily.won && daily.submitResult && (
+      {/* Win modal — shown once submission settles (success or error) */}
+      {daily.won && (daily.submitResult || daily.submitError) && (
         <DailyWinModal
           timerFormatted={daily.timer.formatted}
-          timerSeconds={daily.timer.seconds}
           hintsUsed={daily.hintsUsed}
           submitResult={daily.submitResult}
+          submitError={daily.submitError}
           date={dailyMeta?.date}
-          difficulty={dailyMeta?.difficulty}
         />
       )}
 

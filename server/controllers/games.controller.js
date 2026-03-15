@@ -42,7 +42,8 @@ export async function getGames(req, res, next) {
     if (difficulty) filter.difficulty = difficulty;
 
     const [games, total] = await Promise.all([
-      Game.find(filter).sort({ completedAt: -1 }).skip(skip).limit(limit).lean(),
+      Game.find(filter).sort({ completedAt: -1 }).skip(skip).limit(limit)
+        .select('-solution -puzzle -userGrid').lean(),
       Game.countDocuments(filter),
     ]);
 
@@ -56,7 +57,7 @@ export async function getGames(req, res, next) {
 
 export async function getGame(req, res, next) {
   try {
-    const game = await Game.findById(req.params.id).lean();
+    const game = await Game.findById(req.params.id).select('-solution -puzzle -userGrid').lean();
     if (!game) {
       return res.status(404).json({ error: 'NotFound', message: 'Game not found' });
     }

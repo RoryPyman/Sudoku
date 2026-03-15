@@ -17,6 +17,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
+// Trust the first proxy hop (Fly.io, nginx, etc.) so express-rate-limit
+// sees real client IPs from X-Forwarded-For rather than the proxy IP.
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin:      process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,

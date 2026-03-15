@@ -3,7 +3,6 @@ import { useNavigate }  from 'react-router-dom';
 import { useAuth }      from '../context/AuthContext.jsx';
 import { friendsApi }   from '../api/friends.js';
 import { dailyApi }     from '../api/daily.js';
-import { fmtTime }      from '../lib/formatTime.js';
 import LeaderboardModal from './LeaderboardModal.jsx';
 
 function StatChip({ label, value }) {
@@ -17,11 +16,10 @@ function StatChip({ label, value }) {
 
 export default function DailyWinModal({
   timerFormatted,
-  timerSeconds,
   hintsUsed,
   submitResult,
+  submitError,
   date,
-  difficulty,
 }) {
   const [friends, setFriends]           = useState([]);
   const [shared, setShared]             = useState(new Set());
@@ -93,8 +91,15 @@ export default function DailyWinModal({
           </p>
         )}
 
-        {/* Share section */}
-        {friends.length > 0 && (
+        {/* Submission error notice */}
+        {submitError && (
+          <p className="text-yellow-400/80 text-[.76rem] mb-4 bg-yellow-400/5 border border-yellow-400/20 rounded-lg px-3 py-2">
+            Could not save your result: {submitError}
+          </p>
+        )}
+
+        {/* Share section — only available when submission succeeded */}
+        {!submitError && friends.length > 0 && (
           <div className="mb-5 text-left">
             <p className="text-[.7rem] text-text-muted uppercase tracking-wider mb-2">Share with friends</p>
             <div className="flex flex-col gap-[3px] max-h-[140px] overflow-y-auto">
@@ -122,12 +127,14 @@ export default function DailyWinModal({
 
         {/* Actions */}
         <div className="flex flex-col gap-2">
-          <button
-            className="ctrl-btn ctrl-btn-accent w-full justify-center text-[.88rem] py-[.55rem]"
-            onClick={() => setShowLeaderboard(true)}
-          >
-            View Leaderboard
-          </button>
+          {!submitError && (
+            <button
+              className="ctrl-btn ctrl-btn-accent w-full justify-center text-[.88rem] py-[.55rem]"
+              onClick={() => setShowLeaderboard(true)}
+            >
+              View Leaderboard
+            </button>
+          )}
           <button
             className="ctrl-btn w-full justify-center text-[.82rem] py-[.45rem]"
             onClick={() => navigate('/')}

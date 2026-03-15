@@ -1,8 +1,10 @@
 import mongoose from 'mongoose';
 import User         from '../models/User.js';
+import Game         from '../models/Game.js';
 import DailyResult  from '../models/DailyResult.js';
 import Notification from '../models/Notification.js';
 import { getOrCreateDailyPuzzle, todayUTC } from '../lib/dailyPuzzle.js';
+import { calculateStreaks } from '../lib/streaks.js';
 
 // ── GET /api/daily ────────────────────────────────────────────
 
@@ -234,6 +236,27 @@ export async function getMyRank(req, res, next) {
       friendsRank = fRank + 1;
     }
 
+    // Overall streak: merge regular game completions + daily puzzle completions
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    const [gameCompletedDays, dailyCompletedDays] = await Promise.all([
+      Game.aggregate([
+        { $match: { userId, status: 'completed', completedAt: { $ne: null } } },
+        { $project: { day: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt' } } } },
+        { $group: { _id: '$day' } },
+      ]),
+      DailyResult.aggregate([
+        { $match: { userId } },
+        { $project: { day: '$date' } },
+        { $group: { _id: '$day' } },
+      ]),
+    ]);
+
+    const allDays = [...new Set([
+      ...gameCompletedDays.map(d => d._id),
+      ...dailyCompletedDays.map(d => d._id),
+    ])].sort();
+    const { current: streak } = calculateStreaks(allDays);
+
     res.json({
       date,
       played:              true,
@@ -241,6 +264,7 @@ export async function getMyRank(req, res, next) {
       hintsUsed:           result.hintsUsed,
       leaderboardEligible: result.leaderboardEligible,
       rank: { global: globalRank, friends: friendsRank },
+      streak,
     });
   } catch (err) {
     next(err);

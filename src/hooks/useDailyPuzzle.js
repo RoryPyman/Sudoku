@@ -42,7 +42,7 @@ export function useDailyPuzzle() {
   // Submit when won (guard against double-fire)
   useEffect(() => {
     if (!sudoku.won || submitted.current || !dailyMeta || dailyMeta.alreadyCompleted) return;
-    submitted.current = true;
+    submitted.current = true; // set before the async call to block any concurrent re-fire
 
     dailyApi.submit({
       date:          dailyMeta.date,
