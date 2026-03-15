@@ -167,3 +167,28 @@ export async function getOrCreateDailyPuzzle(dateStr) {
 export function todayUTC() {
   return new Date().toISOString().slice(0, 10);
 }
+
+// ── Random Puzzle Generation ──────────────────────────────────
+
+/**
+ * Generate a random puzzle for challenge mode.
+ * Uses Math.random() (no seeding needed — each call produces a unique puzzle).
+ */
+export function generateRandomPuzzle(difficulty) {
+  const clueCount = CLUE_COUNTS[difficulty] ?? CLUE_COUNTS.medium;
+  const solution = new Array(81).fill(0);
+  solve(solution, {}); // uses Math.random() shuffle fallback
+
+  const puzzle = [...solution];
+  const positions = [...Array(81).keys()].sort(() => Math.random() - 0.5);
+  let removed = 0;
+  for (const pos of positions) {
+    if (removed >= 81 - clueCount) break;
+    const saved = puzzle[pos];
+    puzzle[pos] = 0;
+    const test = [...puzzle];
+    if (solve(test, { countSolutions: true, maxSolutions: 2 }) === 1) removed++;
+    else puzzle[pos] = saved;
+  }
+  return { puzzle, solution, difficulty };
+}

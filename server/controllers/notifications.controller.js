@@ -28,6 +28,23 @@ export async function getNotifications(req, res, next) {
   }
 }
 
+// ── DELETE /api/notifications/:id ────────────────────────────
+
+export async function dismissNotification(req, res, next) {
+  try {
+    const result = await Notification.findOneAndDelete({
+      _id: req.params.id,
+      toUserId: req.user.id,
+    });
+    if (!result) {
+      return res.status(404).json({ error: 'NotFound', message: 'Notification not found' });
+    }
+    res.json({ dismissed: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // ── POST /api/notifications/:id/seen ─────────────────────────
 
 export async function markSeen(req, res, next) {

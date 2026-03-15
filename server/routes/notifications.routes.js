@@ -9,5 +9,6 @@ router.use(authenticate);
 router.get('/',           ctrl.getNotifications);
 router.get('/count',      ctrl.getUnseenCount);
 router.post('/:id/seen',  ctrl.markSeen);
+router.delete('/:id',     ctrl.dismissNotification);
 
 export default router;
