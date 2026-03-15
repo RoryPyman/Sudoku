@@ -11,7 +11,7 @@ A full-stack Sudoku web app with daily puzzles, leaderboards, score sharing, a t
 
 - Random puzzle generation across Easy, Medium, and Hard difficulties
 - **Daily puzzle** - same seeded puzzle for all users each day, with global and friends leaderboards
-- - **Head to Head Challenges** - challenge your friends to a head to head battle on the same puzzle, compare times and stats
+- **Head to Head Challenges** - challenge your friends to a head to head battle on the same puzzle, compare times and stats
 - **Score sharing** - send your daily result to friends as in-app notifications
 - 3-tier hint system powered by a 9-strategy constraint solver (naked single through x-wing)
 - Pencil marks / cell notes for candidate tracking
