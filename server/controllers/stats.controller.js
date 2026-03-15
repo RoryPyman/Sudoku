@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Game from '../models/Game.js';
+import DailyResult from '../models/DailyResult.js';
 import { calculateStreaks } from '../lib/streaks.js';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
@@ -45,23 +46,36 @@ export async function getSummary(req, res, next) {
       },
     ]);
 
-    // Streak calculation per difficulty (separate query — small result set)
-    const completedDays = await Game.aggregate([
-      { $match: { userId, status: 'completed', completedAt: { $ne: null } } },
-      {
-        $project: {
-          difficulty: 1,
-          day: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt' } },
+    // Streak calculation: merge regular game completions + daily puzzle completions
+    const [gameCompletedDays, dailyCompletedDays] = await Promise.all([
+      Game.aggregate([
+        { $match: { userId, status: 'completed', completedAt: { $ne: null } } },
+        {
+          $project: {
+            difficulty: 1,
+            day: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt' } },
+          },
         },
-      },
-      { $group: { _id: { difficulty: '$difficulty', day: '$day' } } },
-      { $sort: { '_id.day': 1 } },
+        { $group: { _id: { difficulty: '$difficulty', day: '$day' } } },
+        { $sort: { '_id.day': 1 } },
+      ]),
+      DailyResult.aggregate([
+        { $match: { userId } },
+        { $project: { day: '$date' } },
+        { $group: { _id: '$day' } },
+      ]),
     ]);
 
     const daysByDiff = { easy: [], medium: [], hard: [] };
-    for (const { _id: { difficulty, day } } of completedDays) {
+    for (const { _id: { difficulty, day } } of gameCompletedDays) {
       daysByDiff[difficulty]?.push(day);
     }
+
+    // Overall streak merges all game days + all daily days (deduped, sorted)
+    const allGameDays   = gameCompletedDays.map(d => d._id.day);
+    const allDailyDays  = dailyCompletedDays.map(d => d._id);
+    const allUniqueDays = [...new Set([...allGameDays, ...allDailyDays])].sort();
+    const overallStreaks = calculateStreaks(allUniqueDays);
 
     const overall = result.overall[0] ?? { total: 0, completed: 0, abandoned: 0 };
     const diffMap = Object.fromEntries(result.byDifficulty.map(d => [d._id, d]));
@@ -86,6 +100,7 @@ export async function getSummary(req, res, next) {
       totalCompleted:   overall.completed,
       totalAbandoned:   overall.abandoned,
       byDifficulty,
+      overallStreak: { current: overallStreaks.current, best: overallStreaks.best },
     });
   } catch (err) {
     next(err);

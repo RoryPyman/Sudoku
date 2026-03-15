@@ -5,11 +5,13 @@ import path          from 'path';
 import { fileURLToPath } from 'url';
 import { apiLimiter }    from './middleware/rateLimiter.js';
 import { errorHandler }  from './middleware/errorHandler.js';
-import authRouter        from './routes/auth.routes.js';
-import gamesRouter       from './routes/games.routes.js';
-import statsRouter       from './routes/stats.routes.js';
-import friendsRouter     from './routes/friends.routes.js';
-import profileRouter     from './routes/profile.routes.js';
+import authRouter         from './routes/auth.routes.js';
+import gamesRouter        from './routes/games.routes.js';
+import statsRouter        from './routes/stats.routes.js';
+import friendsRouter      from './routes/friends.routes.js';
+import profileRouter      from './routes/profile.routes.js';
+import dailyRouter        from './routes/daily.routes.js';
+import notificationsRouter from './routes/notifications.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,8 +28,10 @@ app.use('/api', apiLimiter);
 app.use('/api/auth',    authRouter);
 app.use('/api/games',   gamesRouter);
 app.use('/api/stats',   statsRouter);
-app.use('/api/friends', friendsRouter);
-app.use('/api/users',   profileRouter);
+app.use('/api/friends',       friendsRouter);
+app.use('/api/users',         profileRouter);
+app.use('/api/daily',         dailyRouter);
+app.use('/api/notifications', notificationsRouter);
 
 if (process.env.NODE_ENV === 'production') {
   // Serve the built React app

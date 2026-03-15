@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Game from '../models/Game.js';
+import DailyResult from '../models/DailyResult.js';
 import { calculateStreaks } from '../lib/streaks.js';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
@@ -55,19 +56,30 @@ export async function getProfile(req, res, next) {
       },
     ]);
 
-    // Streak calculation (overall, not per-difficulty)
-    const completedDays = await Game.aggregate([
-      { $match: { userId, status: 'completed', completedAt: { $ne: null } } },
-      {
-        $project: {
-          day: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt' } },
+    // Streak: merge regular game completions + daily puzzle completions
+    const [gameCompletedDays, dailyCompletedDays] = await Promise.all([
+      Game.aggregate([
+        { $match: { userId, status: 'completed', completedAt: { $ne: null } } },
+        {
+          $project: {
+            day: { $dateToString: { format: '%Y-%m-%d', date: '$completedAt' } },
+          },
         },
-      },
-      { $group: { _id: '$day' } },
-      { $sort: { _id: 1 } },
+        { $group: { _id: '$day' } },
+      ]),
+      DailyResult.aggregate([
+        { $match: { userId } },
+        { $project: { day: '$date' } },
+        { $group: { _id: '$day' } },
+      ]),
     ]);
 
-    const allDays = completedDays.map(d => d._id);
+    const allDays = [
+      ...new Set([
+        ...gameCompletedDays.map(d => d._id),
+        ...dailyCompletedDays.map(d => d._id),
+      ]),
+    ].sort();
     const { current: currentStreak, best: longestStreak } = calculateStreaks(allDays);
 
     const overall  = result.overall[0] ?? { completed: 0, hintsTotal: 0 };
