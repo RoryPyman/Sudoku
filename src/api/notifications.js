@@ -9,4 +9,7 @@ export const notificationsApi = {
 
   markSeen: (id) =>
     api.post(`/notifications/${id}/seen`).then(r => r.data),
+
+  dismiss: (id) =>
+    api.delete(`/notifications/${id}`).then(r => r.data),
 };
