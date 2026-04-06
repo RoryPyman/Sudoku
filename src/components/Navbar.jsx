@@ -35,7 +35,7 @@ export default function Navbar() {
 
   return (
     <nav className="w-full border-b border-border-cell bg-bg-surface/80 backdrop-blur-sm sticky top-0 z-20">
-      <div className="max-w-[900px] mx-auto px-4 h-11 flex items-center justify-between gap-4">
+      <div className="max-w-[900px] mx-auto px-4 h-11 flex items-center justify-between gap-2 sm:gap-4">
 
         {/* Logo */}
         <Link
@@ -47,7 +47,8 @@ export default function Navbar() {
 
         {/* Nav links */}
         {user && (
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-3 sm:gap-5 overflow-x-auto scrollbar-none">
+            <NavLink to="/feed"    className={linkClass}>Feed</NavLink>
             <NavLink to="/history" className={linkClass}>History</NavLink>
             <NavLink to="/stats"   className={linkClass}>Stats</NavLink>
             <NavLink to="/daily"   className={linkClass}>Daily</NavLink>

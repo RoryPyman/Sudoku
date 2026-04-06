@@ -17,5 +17,7 @@ const dailyResultSchema = new mongoose.Schema({
 dailyResultSchema.index({ userId: 1, date: 1 }, { unique: true });
 // Leaderboard queries: eligible results for a date sorted by time
 dailyResultSchema.index({ date: 1, leaderboardEligible: 1, timeSeconds: 1 });
+// Feed queries: friend daily completions sorted by time
+dailyResultSchema.index({ userId: 1, completedAt: -1 });
 
 export default mongoose.model('DailyResult', dailyResultSchema);
