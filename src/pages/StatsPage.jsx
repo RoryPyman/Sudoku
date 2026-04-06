@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { statsApi } from '../api/stats.js';
 import StatsCard from '../components/StatsCard.jsx';
+import BadgeCard from '../components/BadgeCard.jsx';
 import { cn } from '../lib/cn.js';
 
 function fmtTime(sec) {
@@ -20,12 +22,13 @@ const DIFF_COLOUR = {
 export default function StatsPage() {
   const [summary, setSummary] = useState(null);
   const [records, setRecords] = useState(null);
+  const [badges,  setBadges]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
   useEffect(() => {
-    Promise.all([statsApi.summary(), statsApi.records()])
-      .then(([sum, rec]) => { setSummary(sum); setRecords(rec); })
+    Promise.all([statsApi.summary(), statsApi.records(), statsApi.badges()])
+      .then(([sum, rec, bdg]) => { setSummary(sum); setRecords(rec); setBadges(bdg); })
       .catch(() => setError('Failed to load stats'))
       .finally(() => setLoading(false));
   }, []);
@@ -61,6 +64,40 @@ export default function StatsPage() {
             <StatsCard label="Abandoned"        value={summary.totalAbandoned} />
           </div>
         </section>
+
+        {/* Badges */}
+        {badges && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[.72rem] text-text-dim uppercase tracking-[.07em]">
+                Badges — {badges.earned.length}/{badges.earned.length + badges.locked.length}
+              </h3>
+              <Link
+                to="/badges"
+                className="text-[.7rem] text-accent hover:text-accent/80 transition-colors"
+              >
+                View all badges &rarr;
+              </Link>
+            </div>
+            {badges.earned.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {badges.earned.map(b => <BadgeCard key={b.id} badge={b} />)}
+              </div>
+            ) : (
+              <p className="text-[.78rem] text-text-muted">
+                No badges yet — keep playing to earn your first!
+              </p>
+            )}
+            {badges.locked.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-[.66rem] text-text-dim uppercase tracking-[.07em] mb-2">Locked</h4>
+                <div className="flex flex-wrap gap-3">
+                  {badges.locked.map(b => <BadgeCard key={b.id} badge={b} locked />)}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Per-difficulty breakdown */}
         {['easy', 'medium', 'hard'].map(diff => {

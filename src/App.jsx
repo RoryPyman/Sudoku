@@ -11,6 +11,7 @@ import FriendsPage  from './pages/FriendsPage.jsx';
 import ProfilePage  from './pages/ProfilePage.jsx';
 import DailyPage      from './pages/DailyPage.jsx';
 import ChallengePage  from './pages/ChallengePage.jsx';
+import BadgesPage     from './pages/BadgesPage.jsx';
 
 export default function App() {
   const { loading } = useAuth();
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/profile/:username" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/daily"            element={<PrivateRoute><DailyPage /></PrivateRoute>} />
         <Route path="/challenges/:id"   element={<PrivateRoute><ChallengePage /></PrivateRoute>} />
+        <Route path="/badges"            element={<PrivateRoute><BadgesPage /></PrivateRoute>} />
         <Route path="*"                 element={<Navigate to="/" replace />} />
       </Routes>
     </div>

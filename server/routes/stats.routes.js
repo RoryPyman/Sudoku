@@ -6,7 +6,9 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/summary', ctrl.getSummary);
-router.get('/records', ctrl.getRecords);
+router.get('/summary',    ctrl.getSummary);
+router.get('/records',    ctrl.getRecords);
+router.get('/badges',     ctrl.getBadges);
+router.get('/badges/all', ctrl.getAllBadges);
 
 export default router;

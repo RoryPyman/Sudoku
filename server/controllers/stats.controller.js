@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Game from '../models/Game.js';
 import DailyResult from '../models/DailyResult.js';
 import { calculateStreaks } from '../lib/streaks.js';
+import { computeBadges, getAllBadgeDefs } from '../lib/badges.js';
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 
@@ -136,6 +137,27 @@ export async function getRecords(req, res, next) {
     }
 
     res.json({ records });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── GET /api/stats/badges ─────────────────────────────────────────────────
+
+export async function getBadges(req, res, next) {
+  try {
+    const result = await computeBadges(req.user.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ── GET /api/stats/badges/all ─────────────────────────────────────────────
+
+export async function getAllBadges(_req, res, next) {
+  try {
+    res.json({ badges: getAllBadgeDefs() });
   } catch (err) {
     next(err);
   }
